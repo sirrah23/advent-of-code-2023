@@ -46,8 +46,7 @@ fn compute_total_score_pt2(filename: &str) -> i32 {
         // Figure out if this card points to more cards
         let curr_item = queue.pop().unwrap();
         let cache_entry = cache.get(&curr_item).unwrap();
-        let mut cache_entry_copy = cache_entry.clone(); // Q: Is there a better way to do this???
-        queue.append(&mut cache_entry_copy);
+        queue.extend_from_slice(cache_entry);
     }
     return total_score;
 }
