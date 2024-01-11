@@ -1,4 +1,4 @@
-use std::collections::HashMap;
+// use std::collections::HashMap;
 use std::fs::read_to_string;
 
 fn main() {
@@ -6,7 +6,6 @@ fn main() {
         "Sample: {}",
         compute_lowest_location_number("src/inputs/day05/sample.txt")
     );
-
     println!(
         "Input: {}",
         compute_lowest_location_number("src/inputs/day05/input.txt")
@@ -66,12 +65,19 @@ fn parse_initial_seeds(seed_line: &String) -> Vec<i64> {
 #[derive(Debug)]
 struct Map {
     name: String,
-    hash_map: HashMap<i64, i64>,
+    entries: Vec<MapEntry>,
+}
+
+#[derive(Debug)]
+struct MapEntry {
+    source: i64,
+    destination: i64,
+    range: i64,
 }
 
 impl Map {
     fn new(input: &Vec<String>) -> Self {
-        let mut hash_map: HashMap<i64, i64> = HashMap::new();
+        let mut entries = Vec::new();
         let first_line: &String = input.first().unwrap();
         let name: String = first_line.split(' ').next().unwrap().to_string();
         for line in input.into_iter().skip(1) {
@@ -79,19 +85,23 @@ impl Map {
             let destination = numbers_str.next().unwrap().parse::<i64>().unwrap();
             let source = numbers_str.next().unwrap().parse::<i64>().unwrap();
             let range = numbers_str.next().unwrap().parse::<i64>().unwrap();
-            for i in 0..range {
-                hash_map.insert(source + i, destination + i);
-            }
+            entries.push(MapEntry {
+                source,
+                destination,
+                range,
+            })
         }
-        return Map { name, hash_map };
+        return Map { name, entries };
     }
 
     fn get(&self, key: i64) -> i64 {
-        if let Some(value) = self.hash_map.get(&key) {
-            return *value;
-        } else {
-            return key;
+        for entry in &self.entries {
+            if key < entry.source || key > entry.source + entry.range {
+                continue;
+            }
+            return entry.destination + key - entry.source;
         }
+        return key;
     }
 }
 
