@@ -1,18 +1,27 @@
 // use std::collections::HashMap;
+use std::collections::VecDeque;
 use std::fs::read_to_string;
 
 fn main() {
     println!(
-        "Sample: {}",
-        compute_lowest_location_number("src/inputs/day05/sample.txt")
+        "Sample Part 1: {}",
+        compute_lowest_location_number("src/inputs/day05/sample.txt", false)
     );
     println!(
-        "Input: {}",
-        compute_lowest_location_number("src/inputs/day05/input.txt")
+        "Sample Part 2: {}",
+        compute_lowest_location_number("src/inputs/day05/sample.txt", true)
+    );
+    println!(
+        "Input Part 1: {}",
+        compute_lowest_location_number("src/inputs/day05/input.txt", false)
+    );
+    println!(
+        "Input Part 2: {}",
+        compute_lowest_location_number("src/inputs/day05/input.txt", true)
     );
 }
 
-fn compute_lowest_location_number(filename: &str) -> i64 {
+fn compute_lowest_location_number(filename: &str, seed_range_flag: bool) -> i64 {
     let mut batch: Vec<String> = Vec::new();
     let mut mc: MapChain = MapChain::new();
     let mut initial_seeds: Option<Vec<i64>> = None;
@@ -41,10 +50,24 @@ fn compute_lowest_location_number(filename: &str) -> i64 {
     let mut answer = i64::MAX;
     match initial_seeds {
         Some(s) => {
-            for seed in s {
-                let result = mc.follow_chain(seed);
-                if result < answer {
-                    answer = result
+            if seed_range_flag {
+                let mut sb = SeedBag::new(s);
+                loop {
+                    let next_seed_value = sb.next();
+                    if next_seed_value == -1 {
+                        break;
+                    }
+                    let result = mc.follow_chain(next_seed_value);
+                    if result < answer {
+                        answer = result;
+                    }
+                }
+            } else {
+                for seed in s {
+                    let result = mc.follow_chain(seed);
+                    if result < answer {
+                        answer = result
+                    }
                 }
             }
         }
@@ -60,6 +83,41 @@ fn parse_initial_seeds(seed_line: &String) -> Vec<i64> {
         parsed_seed_values.push(in_seed_value.parse::<i64>().unwrap())
     }
     return parsed_seed_values;
+}
+
+struct SeedBag {
+    seed_values: VecDeque<i64>,
+    start: i64,
+    range: i64,
+    ptr: i64,
+}
+
+impl SeedBag {
+    fn new(seed_values: Vec<i64>) -> Self {
+        SeedBag {
+            seed_values: VecDeque::from(seed_values),
+            start: -1,
+            range: -1,
+            ptr: 0,
+        }
+    }
+
+    // TODO: Instead of iterating through each number one-by-one probably makes more sense to work
+    // with the ranges directly somehow...
+    // OR, reverse map from location to seed
+    fn next(&mut self) -> i64 {
+        if (self.ptr > self.range) && (self.seed_values.len() == 0) {
+            return -1;
+        }
+        if (self.start == -1 && self.range == -1) || (self.ptr > self.range) {
+            self.start = self.seed_values.pop_front().unwrap();
+            self.range = self.seed_values.pop_front().unwrap();
+            self.ptr = 0;
+        }
+        let result = self.start + self.ptr;
+        self.ptr += 1;
+        return result;
+    }
 }
 
 #[derive(Debug)]
