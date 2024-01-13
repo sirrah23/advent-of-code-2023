@@ -1,23 +1,30 @@
 // use std::collections::HashMap;
 use std::collections::VecDeque;
 use std::fs::read_to_string;
+use std::time::Instant;
 
 fn main() {
     println!(
         "Sample Part 1: {}",
-        compute_lowest_location_number("src/inputs/day05/sample.txt", false)
+        time_code(|| -> i64 {
+            compute_lowest_location_number("src/inputs/day05/sample.txt", false)
+        })
     );
     println!(
         "Sample Part 2: {}",
-        compute_lowest_location_number("src/inputs/day05/sample.txt", true)
+        time_code(|| -> i64 {
+            compute_lowest_location_number("src/inputs/day05/sample.txt", true)
+        })
     );
     println!(
         "Input Part 1: {}",
-        compute_lowest_location_number("src/inputs/day05/input.txt", false)
+        time_code(|| -> i64 {
+            compute_lowest_location_number("src/inputs/day05/input.txt", false)
+        })
     );
     println!(
         "Input Part 2: {}",
-        compute_lowest_location_number("src/inputs/day05/input.txt", true)
+        time_code(|| -> i64 { compute_lowest_location_number("src/inputs/day05/input.txt", true) })
     );
 }
 
@@ -198,4 +205,15 @@ impl MapChain {
         }
         return value;
     }
+}
+
+fn time_code<F>(func: F) -> i64
+where
+    F: Fn() -> i64,
+{
+    let now = Instant::now();
+    let res = func();
+    let elapsed = now.elapsed();
+    println!("Elapsed: {:.2?}", elapsed);
+    return res;
 }
