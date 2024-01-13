@@ -51,16 +51,19 @@ fn compute_lowest_location_number(filename: &str, seed_range_flag: bool) -> i64 
     match initial_seeds {
         Some(s) => {
             if seed_range_flag {
-                let mut sb = SeedBag::new(s);
+                let sb = SeedBag::new(s);
+                let mut i = 0;
                 loop {
-                    let next_seed_value = sb.next();
-                    if next_seed_value == -1 {
+                    let seed_candidate = mc.follow_chain_backwards(i);
+                    if seed_candidate == -1 {
+                        i += 1;
+                        continue;
+                    }
+                    if sb.contains(seed_candidate) {
+                        answer = i;
                         break;
                     }
-                    let result = mc.follow_chain(next_seed_value);
-                    if result < answer {
-                        answer = result;
-                    }
+                    i += 1;
                 }
             } else {
                 for seed in s {
@@ -86,37 +89,31 @@ fn parse_initial_seeds(seed_line: &String) -> Vec<i64> {
 }
 
 struct SeedBag {
-    seed_values: VecDeque<i64>,
-    start: i64,
-    range: i64,
-    ptr: i64,
+    ranges: Vec<(i64, i64)>,
 }
 
 impl SeedBag {
     fn new(seed_values: Vec<i64>) -> Self {
-        SeedBag {
-            seed_values: VecDeque::from(seed_values),
-            start: -1,
-            range: -1,
-            ptr: 0,
+        let mut seed_values_dq = VecDeque::from(seed_values);
+        let mut ranges: Vec<(i64, i64)> = Vec::new();
+        loop {
+            if seed_values_dq.len() <= 0 {
+                break;
+            }
+            let x = seed_values_dq.pop_front().unwrap();
+            let y = seed_values_dq.pop_front().unwrap();
+            ranges.push((x, y));
         }
+        SeedBag { ranges }
     }
 
-    // TODO: Instead of iterating through each number one-by-one probably makes more sense to work
-    // with the ranges directly somehow...
-    // OR, reverse map from location to seed
-    fn next(&mut self) -> i64 {
-        if (self.ptr > self.range) && (self.seed_values.len() == 0) {
-            return -1;
+    fn contains(&self, seed: i64) -> bool {
+        for range in &self.ranges {
+            if seed >= range.0 && seed <= range.0 + range.1 {
+                return true;
+            }
         }
-        if (self.start == -1 && self.range == -1) || (self.ptr > self.range) {
-            self.start = self.seed_values.pop_front().unwrap();
-            self.range = self.seed_values.pop_front().unwrap();
-            self.ptr = 0;
-        }
-        let result = self.start + self.ptr;
-        self.ptr += 1;
-        return result;
+        return false;
     }
 }
 
@@ -161,6 +158,16 @@ impl Map {
         }
         return key;
     }
+
+    fn get_rev(&self, key: i64) -> i64 {
+        for entry in &self.entries {
+            if key < entry.destination || key > entry.destination + entry.range {
+                continue;
+            }
+            return entry.source + key - entry.destination;
+        }
+        return key;
+    }
 }
 
 struct MapChain {
@@ -180,6 +187,14 @@ impl MapChain {
         let mut value = seed;
         for map in &self.chain {
             value = map.get(value);
+        }
+        return value;
+    }
+
+    fn follow_chain_backwards(&self, seed: i64) -> i64 {
+        let mut value = seed;
+        for map in self.chain.iter().rev() {
+            value = map.get_rev(value);
         }
         return value;
     }
